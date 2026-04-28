@@ -17,6 +17,7 @@ def initialize():
     _check_version()
     _populate_volumes()
     _populate_images()
+    # Links each image file to its currently mounted volume, if any.
     _cross_reference()
 
 def _check_version():
@@ -31,6 +32,7 @@ def _check_version():
         VersionInfo.version = ""
         VersionInfo.meets_minimum = False
         return
+    # Casefold support in mkfs.ext4 requires e2fsprogs 1.45 or higher.
     minimum = Version("1.45")
     VersionInfo.version = version_str
     VersionInfo.meets_minimum = Version(version_str) >= minimum

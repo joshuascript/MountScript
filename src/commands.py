@@ -5,7 +5,8 @@ from src.paths import Paths
 from src.info_states import SessionState
 from src import startup
 
-# checks the state of a directory — returns a string describing its current state
+# Returns a string describing the current state of a directory,
+# checked in priority order so callers get the most specific classification.
 def check_directory_state(directory: str) -> str:
     if not os.path.isdir(directory):
         return "does_not_exist"
@@ -65,8 +66,11 @@ def create(directory: str = None):
 
     temp_dir = None
     if state == "not_empty":
+        # Temp dir is placed next to the target so it stays on the same
+        # underlying filesystem, avoiding a cross-device copy on restore.
         print("Stashing existing files...")
         temp_dir = tempfile.mkdtemp(dir=os.path.dirname(target))
+        # The trailing "/." copies directory contents including hidden files.
         subprocess.run(["cp", "-a", target + "/.", temp_dir + "/"], check=True)
         subprocess.run(["rm", "-rf"] + [
             os.path.join(target, f) for f in os.listdir(target)
@@ -79,12 +83,15 @@ def create(directory: str = None):
         print("Formatting image...")
         format_image(image_path)
 
+        # Removes lost+found from the image before mounting so it never
+        # appears inside the user's directory.
         print("Removing lost+found...")
         remove_lost_found(image_path)
 
         print("Mounting image...")
         mount_image(image_path, target)
 
+        # +F enables the casefold attribute, making lookups case-insensitive.
         print("Setting casefold...")
         set_casefold(target)
 
@@ -127,6 +134,8 @@ def remove(directory: str = None):
     image_name = os.path.basename(target) + ".img"
     image_path = os.path.join(Paths.IMAGES_DIR, image_name)
 
+    # Stash files before unmounting — once the mount is gone the directory
+    # reverts to its empty underlying state and the image is deleted.
     print("Stashing files...")
     temp_dir = tempfile.mkdtemp(dir=os.path.dirname(target))
     subprocess.run(["cp", "-a", target + "/.", temp_dir + "/"], check=True)
@@ -153,23 +162,29 @@ def remove(directory: str = None):
 
     print(f"Done — {target} restored with files intact")
 
+# Replays udev events on block devices, causing udisks2 to drop stale
+# loop device entries that Nautilus shows as ghost volumes.
 def fix():
     subprocess.run(["udevadm", "trigger", "--subsystem-match=block"], check=True)
     print("Done — ghost volumes cleared")
 
 def create_image(image_path: str, size_gb: int = 50):
+    # truncate creates a sparse file — it allocates no real disk space upfront.
     subprocess.run(["truncate", "-s", f"{size_gb}G", image_path], check=True)
 
 def format_image(image_path: str):
+    # encoding_flags=strict rejects filenames that aren't valid UTF-8.
     subprocess.run(["mkfs.ext4", "-O", "casefold", "-E", "encoding=utf8,encoding_flags=strict", image_path], check=True)
 
 def mount_image(image_path: str, destination: str):
     subprocess.run(["sudo", "mount", "-o", "loop", image_path, destination], check=True)
 
 def unmount_image(destination: str):
+    # -l (lazy) defers the unmount until the filesystem is no longer busy,
+    # preventing failures if a file manager has the directory open.
     subprocess.run(["sudo", "umount", "-l", destination], check=True)
 
-# detaches the loop device backing the given image file
+# Detaches the loop device backing the given image file.
 def detach_loop(image_path: str):
     result = subprocess.run(
         ["sudo", "losetup", "--output", "NAME", "--noheadings", "--associated", image_path],
@@ -183,7 +198,8 @@ def detach_loop(image_path: str):
 def remove_image(image_path: str):
     subprocess.run(["sudo", "rm", image_path], check=True)
 
-# transfers ownership of the mounted directory to the current user
+# Transfers ownership of the mounted directory to the invoking user.
+# The mount operation runs as root, so without this the directory is root-owned.
 def set_ownership(destination: str):
     user = os.getlogin()
     subprocess.run(["sudo", "chown", f"{user}:{user}", destination], check=True)
@@ -191,6 +207,7 @@ def set_ownership(destination: str):
 def set_casefold(destination: str):
     subprocess.run(["sudo", "chattr", "+F", destination], check=True)
 
-# removes lost+found directly from the image file before mounting
+# Uses debugfs to remove lost+found directly from the image before it is
+# mounted — deleting it after mounting would leave it on the ext4 filesystem.
 def remove_lost_found(image_path: str):
     subprocess.run(["sudo", "debugfs", "-w", image_path, "-R", "rmdir lost+found"], check=True)
