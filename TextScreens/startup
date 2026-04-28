@@ -1,0 +1,16 @@
+#####################################################
+##            MountScript @joshuascript		   ##
+#####################################################
+
+# Create a case-insensitive directory on Linux
+
+ [1] : Select folder
+ [2] : Create Mount
+ [3] : Remove a mount
+ [4] : Make existing mount permanent
+
+You can also make select and make a folder, then move
+over an existing application with a GitHub repo.
+Do not delete MountScript, because the images are saved here.
+
+Type "q" to quit
