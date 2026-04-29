@@ -1,11 +1,11 @@
 # anneal
-### Native case-insensitive directories on Linux — no FUSE, no overhead.
+### Native case-insensitive directories on Linux
 
 anneal turns any Linux directory case-insensitive by backing it with a real ext4
 filesystem formatted with the kernel's built-in `casefold` option. Your files
 stay put. Your apps stop caring about case.
 
-## Why anneal?
+## About
 
 - **Kernel-native** — no FUSE overlay, no userspace translation. Full ext4
   performance at every read and write.
