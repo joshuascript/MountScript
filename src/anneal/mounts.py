@@ -27,7 +27,7 @@ class VolumeCache:
         fstype = fs.get("fstype", "")
         # Casefold mounts are identified by being ext4 on a loop device.
         # This is a heuristic — not all ext4 loop mounts have casefold enabled,
-        # but all foldmount mounts do.
+        # but all anneal mounts do.
         is_casefold = fstype == "ext4" and source.startswith("/dev/loop")
         source_image = self._resolve_loop(source) if is_casefold else ""
         self.volumes.append(Volume(
@@ -58,12 +58,12 @@ class VolumeCache:
     def get_by_source(self, image_path: str) -> Volume | None:
         return next((v for v in self.volumes if v.source_image == image_path), None)
 
-    # A foldmount mount is a casefold volume whose image lives in IMAGES_DIR.
+    # A anneal mount is a casefold volume whose image lives in IMAGES_DIR.
     def is_casefold_mount(self, directory: str) -> bool:
         volume = self.get(directory)
         return volume is not None and volume.casefold and volume.source_image.startswith(Paths.IMAGES_DIR)
 
-    # An external casefold is a casefold loop mount not created by foldmount.
+    # An external casefold is a casefold loop mount not created by anneal.
     def is_external_casefold(self, directory: str) -> bool:
         volume = self.get(directory)
         return volume is not None and volume.casefold and not volume.source_image.startswith(Paths.IMAGES_DIR)

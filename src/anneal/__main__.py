@@ -4,7 +4,7 @@ from .models import VersionInfo
 
 def main():
     if os.geteuid() != 0:
-        print("foldmount requires sudo — run with: sudo foldmount")
+        print("anneal requires sudo — run with: sudo anneal")
         return
 
     context.initialize()

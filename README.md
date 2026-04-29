@@ -1,11 +1,10 @@
-# foldmount
+# anneal
 ### Create case-insensitive directories on Linux
 
-foldmount converts any directory on your machine from case-sensitive to case-insensitive by backing it with an ext4 loop mount formatted with the `casefold` option.
+anneal converts any directory on your machine from case-sensitive to case-insensitive by backing it with an ext4 loop mount formatted with the `casefold` option.
 
 ## Requirements
 
-- `sudo`
 - `python3`
 - `e2fsprogs >= 1.45` (`mkfs.ext4`, `debugfs`)
 - `losetup`, `findmnt`
@@ -22,12 +21,12 @@ To uninstall:
 sudo ./install.sh --uninstall
 ```
 
-> Uninstalling removes `/opt/foldmount` and `/usr/local/bin/foldmount`. Your images and mounts in `/var/lib/foldmount/` are left intact.
+> Uninstalling removes `/opt/anneal` and `/usr/local/bin/anneal`. Your images and mounts in `/var/lib/anneal/` are left intact.
 
 ## Usage
 
 ```bash
-foldmount <command> [directory]
+anneal <command> [directory]
 ```
 
 ## Commands
@@ -37,7 +36,7 @@ foldmount <command> [directory]
 | `select <directory>` | Set the active directory for subsequent commands |
 | `create [directory]` | Create a casefold mount (uses selected if omitted) |
 | `remove [directory]` | Unmount and remove the image, preserving all files (uses selected if omitted) |
-| `list` | Show all foldmount images with mount status and fstab info |
+| `list` | Show all anneal images with mount status and fstab info |
 | `permanent [directory]` | Add the mount to `/etc/fstab` so it persists across reboots (uses selected if omitted) |
 | `permanent [directory] --remove` | Remove the mount from `/etc/fstab` |
 | `fix` | Clear ghost volumes from Nautilus |
@@ -45,14 +44,14 @@ foldmount <command> [directory]
 ## Example
 
 ```bash
-foldmount select ~/Music
-foldmount create
-foldmount permanent
+anneal select ~/Music
+anneal create
+anneal permanent
 ```
 
 Or in one step:
 
 ```bash
-foldmount create ~/Music
-foldmount permanent ~/Music
+anneal create ~/Music
+anneal permanent ~/Music
 ```

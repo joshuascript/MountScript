@@ -6,7 +6,7 @@ from .paths import Paths
 
 class DirectoryState(Enum):
     MISSING           = auto()
-    FOLDMOUNT         = auto()
+    ANNEAL            = auto()
     EXTERNAL_CASEFOLD = auto()
     MOUNTED           = auto()
     NOT_EMPTY         = auto()

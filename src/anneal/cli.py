@@ -3,9 +3,9 @@ from . import commands
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="foldmount",
+        prog="anneal",
         description="Manage case-insensitive directories on Linux",
-        epilog="Run 'foldmount <command> --help' for help on a specific command.",
+        epilog="Run 'anneal <command> --help' for help on a specific command.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     subparsers = parser.add_subparsers(
@@ -25,7 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     remove_parser.add_argument("directory", nargs="?", help="Path to the directory (optional if already selected)")
     remove_parser.set_defaults(func=lambda args: commands.remove(args.directory))
 
-    list_parser = subparsers.add_parser("list", help="List all active foldmount casefold mounts")
+    list_parser = subparsers.add_parser("list", help="List all active anneal casefold mounts")
     list_parser.set_defaults(func=lambda args: commands.list_images())
 
     fix_parser = subparsers.add_parser("fix", help="Clear ghost volumes from Nautilus")

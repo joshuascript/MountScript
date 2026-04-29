@@ -11,14 +11,14 @@ def image_path_for(target: str) -> str:
 def resolve_target(directory: str | None, cmd: str) -> str | None:
     target = directory or Session.selected_directory
     if not target:
-        print(f"No directory specified. Run 'foldmount select <directory>' first, or pass a directory: 'foldmount {cmd} <directory>'")
+        print(f"No directory specified. Run 'anneal select <directory>' first, or pass a directory: 'anneal {cmd} <directory>'")
         return None
     return os.path.abspath(target)
 
 def _is_unavailable(state: DirectoryState, target: str) -> bool:
     messages = {
         DirectoryState.MISSING:           f"Directory does not exist: {target}",
-        DirectoryState.FOLDMOUNT:         f"Already a foldmount casefold mount: {target}",
+        DirectoryState.ANNEAL:         f"Already a anneal casefold mount: {target}",
         DirectoryState.EXTERNAL_CASEFOLD: f"External casefold mount detected: {target}",
         DirectoryState.MOUNTED:           f"Directory is already mounted: {target}",
     }
@@ -31,7 +31,7 @@ def get_directory_state(directory: str) -> DirectoryState:
     if not os.path.isdir(directory):
         return DirectoryState.MISSING
     if context.volume_cache.is_casefold_mount(directory):
-        return DirectoryState.FOLDMOUNT
+        return DirectoryState.ANNEAL
     if context.volume_cache.is_external_casefold(directory):
         return DirectoryState.EXTERNAL_CASEFOLD
     if context.volume_cache.is_mounted(directory):
@@ -117,7 +117,7 @@ def create(directory: str = None):
 def list_images():
     images = context.image_cache.images
     if not images:
-        print("No foldmount images found")
+        print("No anneal images found")
         return
 
     headers = ["DIRECTORY", "IMAGE", "SIZE", "LOOP", "STATUS", "PERM"]
@@ -148,8 +148,8 @@ def remove(directory: str = None):
         return
 
     state = get_directory_state(target)
-    if state != DirectoryState.FOLDMOUNT:
-        print(f"No foldmount mount found at: {target}")
+    if state != DirectoryState.ANNEAL:
+        print(f"No anneal mount found at: {target}")
         return
 
     image_path = image_path_for(target)
@@ -252,8 +252,8 @@ def permanent(directory: str = None, remove: bool = False):
         return
 
     state = get_directory_state(target)
-    if state != DirectoryState.FOLDMOUNT:
-        print(f"No foldmount mount found at: {target}")
+    if state != DirectoryState.ANNEAL:
+        print(f"No anneal mount found at: {target}")
         return
 
     if target in Session.permanent_directories:

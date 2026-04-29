@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -e
 
-INSTALL_DIR="/opt/foldmount"
-BIN_PATH="/usr/local/bin/foldmount"
-DATA_DIR="/var/lib/foldmount"
+INSTALL_DIR="/opt/anneal"
+BIN_PATH="/usr/local/bin/anneal"
+DATA_DIR="/var/lib/anneal"
 
 if [[ "$EUID" -ne 0 ]]; then
     exec sudo "$0" "$@"
 fi
 
 uninstall() {
-    echo "Uninstalling foldmount..."
+    echo "Uninstalling anneal..."
     rm -f "$BIN_PATH"
     rm -rf "$INSTALL_DIR"
     echo "Removed $BIN_PATH and $INSTALL_DIR"
@@ -40,18 +40,18 @@ if [[ "$(printf '%s\n' "$REQUIRED" "$MKE2FS_VERSION" | sort -V | head -1)" != "$
     exit 1
 fi
 
-echo "Installing foldmount..."
+echo "Installing anneal..."
 
 # Copy package
 rm -rf "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
-cp -r src/foldmount/. "$INSTALL_DIR/"
+cp -r src/anneal/. "$INSTALL_DIR/"
 
 # Install entry point
-cp "$INSTALL_DIR/bash/foldmount.bash" "$BIN_PATH"
+cp "$INSTALL_DIR/bash/anneal.bash" "$BIN_PATH"
 chmod +x "$BIN_PATH"
 
 # Create data directory
 mkdir -p "$DATA_DIR"
 
-echo "Done. Run: foldmount <command>"
+echo "Done. Run: anneal <command>"

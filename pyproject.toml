@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.backends.legacy:build"
 
 [project]
-name = "foldmount"
+name = "anneal"
 version = "0.1.0"
 description = "Create case-insensitive directories on Linux via ext4 casefold loop mounts"
 requires-python = ">=3.10"
@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-foldmount = "foldmount.__main__:main"
+anneal = "anneal.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
