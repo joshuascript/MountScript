@@ -113,12 +113,32 @@ def create(directory: str = None):
     print(f"Done — {target} is now case-insensitive")
 
 def list_mounts():
-    mounts = startup.volume_cache.casefold_volumes()
-    if not mounts:
-        print("No active MountScript mounts")
+    images = startup.image_cache.images
+    if not images:
+        print("No MountScript images found")
         return
-    for v in mounts:
-        print(f"{v.directory} <- {v.source_image}")
+
+    headers = ["DIRECTORY", "IMAGE", "SIZE", "LOOP", "STATUS", "PERM"]
+    rows = []
+    for image in images:
+        volume = startup.volume_cache.get_by_source(image.image_path)
+        directory = image.mounted_to if image.mounted_to else "-"
+        img_name = os.path.basename(image.image_path)
+        size = f"{image.size_gb}G"
+        loop = volume.name if volume else "-"
+        status = "mounted" if volume else "not mounted"
+        permanent = "x" if image.permanent else "-"
+        rows.append([directory, img_name, size, loop, status, permanent])
+
+    col_widths = [len(h) for h in headers]
+    for row in rows:
+        for i, cell in enumerate(row):
+            col_widths[i] = max(col_widths[i], len(cell))
+
+    fmt = "  ".join(f"{{:<{w}}}" for w in col_widths)
+    print(fmt.format(*headers))
+    for row in rows:
+        print(fmt.format(*row))
 
 def remove(directory: str = None):
     target = directory or SessionState.selected_directory
@@ -214,11 +234,60 @@ def set_casefold(destination: str):
 def remove_lost_found(image_path: str):
     subprocess.run(["debugfs", "-w", image_path, "-R", "rmdir lost+found"], check=True)
 
+def permanent(directory: str = None, remove: bool = False):
+    target = directory or SessionState.selected_directory
+    if not target:
+        print("No directory specified. Run 'mountscript select <directory>' first, or pass a directory: 'mountscript permanent <directory>'")
+        return
+
+    target = os.path.abspath(target)
+    image_name = os.path.basename(target) + ".img"
+    image_path = os.path.join(Paths.IMAGES_DIR, image_name)
+
+    if remove:
+        if target not in SessionState.permanent_directories:
+            print(f"Not permanent: {target}")
+            return
+        with open("/etc/fstab", "r") as f:
+            lines = f.readlines()
+        filtered = [l for l in lines if image_path not in l]
+        with open("/etc/fstab", "w") as f:
+            f.writelines(filtered)
+        SessionState.permanent_directories.remove(target)
+        SessionState.save()
+        print(f"Done — {target} will no longer mount at boot")
+        return
+
+    state = check_directory_state(target)
+    if state != "mountscript_mount":
+        print(f"No MountScript mount found at: {target}")
+        return
+
+    if target in SessionState.permanent_directories:
+        print(f"Already permanent: {target}")
+        return
+
+    with open("/etc/fstab", "r") as f:
+        fstab = f.read()
+    if image_path in fstab:
+        print(f"Already in /etc/fstab: {image_path}")
+        SessionState.permanent_directories.append(target)
+        SessionState.save()
+        return
+
+    fstab_line = f"{image_path}\t{target}\text4\tloop\t0\t0\n"
+    with open("/etc/fstab", "a") as f:
+        f.write(fstab_line)
+
+    SessionState.permanent_directories.append(target)
+    SessionState.save()
+    print(f"Done — {target} will mount automatically at boot")
+
 REGISTRY = {
     "select":    lambda args: select(args.directory),
     "create":    lambda args: create(args.directory),
     "remove":    lambda args: remove(args.directory),
     "list":      lambda args: list_mounts(),
     "fix":       lambda args: fix(),
-    "permanent": lambda args: None,
+    "permanent": lambda args: permanent(args.directory, args.remove),
 }

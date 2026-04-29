@@ -3,9 +3,14 @@ import argparse
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="mountscript",
-        description="Manage case-insensitive directories on Linux"
+        description="Manage case-insensitive directories on Linux",
+        epilog="Run 'mountscript <command> --help' for help on a specific command.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    subparsers = parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(
+        dest="command",
+        metavar="{select, create, remove, list, fix, permanent}",
+    )
 
     select_parser = subparsers.add_parser("select", help="Select a directory")
     select_parser.add_argument("directory", help="Path to the directory")
@@ -17,7 +22,8 @@ def build_parser() -> argparse.ArgumentParser:
     remove_parser.add_argument("directory", nargs="?", help="Path to the directory (optional if already selected)")
     subparsers.add_parser("list", help="List all active MountScript casefold mounts")
     subparsers.add_parser("fix", help="Clear ghost volumes from Nautilus")
-    permanent_parser = subparsers.add_parser("permanent", help="Make the casefold mount permanent")
+    permanent_parser = subparsers.add_parser("permanent", help="Make the casefold mount permanent (use --remove to undo)")
     permanent_parser.add_argument("directory", nargs="?", help="Path to the directory (optional if already selected)")
+    permanent_parser.add_argument("--remove", action="store_true", help="Remove the mount from fstab")
 
     return parser
