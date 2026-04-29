@@ -32,13 +32,13 @@ at the kernel level, not through a compatibility shim.
 ## Install
 
 ```bash
-sudo ./install.sh
+./install.sh
 ```
 
 To uninstall:
 
 ```bash
-sudo ./install.sh --uninstall
+./install.sh --uninstall
 ```
 
 > Uninstalling removes `/opt/anneal` and `/usr/local/bin/anneal`. Your images
