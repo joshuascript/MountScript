@@ -1,15 +1,14 @@
 import subprocess
 import json
 from typing import List
-from info_states import Volume
-from paths import Paths
+from .models import Volume
+from .paths import Paths
 
 class VolumeCache:
     def __init__(self):
         self.volumes: List[Volume] = []
         self.refresh()
 
-    # Queries findmnt and repopulates the volume list.
     def refresh(self):
         self.volumes = []
         result = subprocess.run(
@@ -32,7 +31,7 @@ class VolumeCache:
         is_casefold = fstype == "ext4" and source.startswith("/dev/loop")
         source_image = self._resolve_loop(source) if is_casefold else ""
         self.volumes.append(Volume(
-            name=source,
+            loop_device=source,
             directory=fs.get("target", ""),
             mounted=True,
             casefold=is_casefold,
@@ -41,7 +40,7 @@ class VolumeCache:
         for child in fs.get("children", []):
             self._add_entry(child)
 
-    # Resolves a loop device name (e.g. /dev/loop0) to its backing file path.
+    # Resolves a loop device path (e.g. /dev/loop0) to its backing file path.
     def _resolve_loop(self, loop_device: str) -> str:
         result = subprocess.run(
             ["losetup", "--output", "BACK-FILE", "--noheadings", loop_device],
@@ -53,11 +52,10 @@ class VolumeCache:
     def is_mounted(self, directory: str) -> bool:
         return any(v.directory == directory for v in self.volumes)
 
-    def get(self, directory: str):
+    def get(self, directory: str) -> Volume | None:
         return next((v for v in self.volumes if v.directory == directory), None)
 
-    # Returns the Volume whose backing image matches the given path.
-    def get_by_source(self, image_path: str):
+    def get_by_source(self, image_path: str) -> Volume | None:
         return next((v for v in self.volumes if v.source_image == image_path), None)
 
     # A foldmount mount is a casefold volume whose image lives in IMAGES_DIR.
@@ -72,6 +70,3 @@ class VolumeCache:
 
     def casefold_volumes(self) -> List[Volume]:
         return [v for v in self.volumes if v.casefold and v.source_image.startswith(Paths.IMAGES_DIR)]
-
-    def external_casefold_volumes(self) -> List[Volume]:
-        return [v for v in self.volumes if v.casefold and not v.source_image.startswith(Paths.IMAGES_DIR)]

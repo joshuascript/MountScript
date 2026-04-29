@@ -1,73 +1,75 @@
 import os
 import subprocess
 import tempfile
-from paths import Paths
-from info_states import SessionState
-import startup
+from .paths import Paths
+from .models import Session, DirectoryState
+from . import context, prepare
 
-# Returns a string describing the current state of a directory,
-# checked in priority order so callers get the most specific classification.
-def check_directory_state(directory: str) -> str:
+def image_path_for(target: str) -> str:
+    return os.path.join(Paths.IMAGES_DIR, os.path.basename(target) + ".img")
+
+def resolve_target(directory: str | None, cmd: str) -> str | None:
+    target = directory or Session.selected_directory
+    if not target:
+        print(f"No directory specified. Run 'foldmount select <directory>' first, or pass a directory: 'foldmount {cmd} <directory>'")
+        return None
+    return os.path.abspath(target)
+
+def _is_unavailable(state: DirectoryState, target: str) -> bool:
+    messages = {
+        DirectoryState.MISSING:           f"Directory does not exist: {target}",
+        DirectoryState.FOLDMOUNT:         f"Already a foldmount casefold mount: {target}",
+        DirectoryState.EXTERNAL_CASEFOLD: f"External casefold mount detected: {target}",
+        DirectoryState.MOUNTED:           f"Directory is already mounted: {target}",
+    }
+    if state in messages:
+        print(messages[state])
+        return True
+    return False
+
+def get_directory_state(directory: str) -> DirectoryState:
     if not os.path.isdir(directory):
-        return "does_not_exist"
-    if startup.volume_cache.is_casefold_mount(directory):
-        return "foldmount_mount"
-    if startup.volume_cache.is_external_casefold(directory):
-        return "external_casefold"
-    if startup.volume_cache.is_mounted(directory):
-        return "mounted"
+        return DirectoryState.MISSING
+    if context.volume_cache.is_casefold_mount(directory):
+        return DirectoryState.FOLDMOUNT
+    if context.volume_cache.is_external_casefold(directory):
+        return DirectoryState.EXTERNAL_CASEFOLD
+    if context.volume_cache.is_mounted(directory):
+        return DirectoryState.MOUNTED
     if os.listdir(directory):
-        return "not_empty"
-    return "empty"
+        return DirectoryState.NOT_EMPTY
+    return DirectoryState.EMPTY
 
 def select(directory: str):
     directory = os.path.abspath(directory)
-    state = check_directory_state(directory)
-
-    if state == "does_not_exist":
-        print(f"Directory does not exist: {directory}")
+    state = get_directory_state(directory)
+    if _is_unavailable(state, directory):
         return
-    if state == "foldmount_mount":
-        print(f"Already a foldmount casefold mount: {directory}")
-        return
-    if state == "external_casefold":
-        print(f"External casefold mount detected: {directory}")
-        return
-    if state == "mounted":
-        print(f"Directory is already mounted: {directory}")
-        return
-
-    SessionState.selected_directory = directory
-    SessionState.save()
+    Session.selected_directory = directory
+    Session.save()
     print(f"Selected: {directory}")
 
 def create(directory: str = None):
-    target = directory or SessionState.selected_directory
+    target = resolve_target(directory, "create")
     if not target:
-        print("No directory specified. Run 'foldmount select <directory>' first, or pass a directory: 'foldmount create <directory>'")
         return
 
-    target = os.path.abspath(target)
-    state = check_directory_state(target)
-
-    if state == "does_not_exist":
-        print(f"Directory does not exist: {target}")
-        return
-    if state == "foldmount_mount":
-        print(f"Already a foldmount casefold mount: {target}")
-        return
-    if state == "external_casefold":
-        print(f"External casefold mount detected: {target}")
-        return
-    if state == "mounted":
-        print(f"Directory is already mounted: {target}")
+    state = get_directory_state(target)
+    if _is_unavailable(state, target):
         return
 
-    image_name = os.path.basename(target) + ".img"
-    image_path = os.path.join(Paths.IMAGES_DIR, image_name)
+    if state == DirectoryState.NOT_EMPTY:
+        cache = prepare.scan_conflicts(target)
+        if cache.has_conflicts:
+            if not prepare.resolve_conflicts(cache, target):
+                return
+            prepare.apply_conflicts(cache, target)
+
+    image_path = image_path_for(target)
+    image_name = os.path.basename(image_path)
 
     temp_dir = None
-    if state == "not_empty":
+    if state == DirectoryState.NOT_EMPTY:
         # Temp dir is placed next to the target so it stays on the same
         # underlying filesystem, avoiding a cross-device copy on restore.
         print("Stashing existing files...")
@@ -112,8 +114,8 @@ def create(directory: str = None):
 
     print(f"Done — {target} is now case-insensitive")
 
-def list_mounts():
-    images = startup.image_cache.images
+def list_images():
+    images = context.image_cache.images
     if not images:
         print("No foldmount images found")
         return
@@ -121,11 +123,11 @@ def list_mounts():
     headers = ["DIRECTORY", "IMAGE", "SIZE", "LOOP", "STATUS", "PERM"]
     rows = []
     for image in images:
-        volume = startup.volume_cache.get_by_source(image.image_path)
-        directory = image.mounted_to if image.mounted_to else "-"
-        img_name = os.path.basename(image.image_path)
+        volume = context.volume_cache.get_by_source(image.path)
+        directory = image.mount_point if image.mount_point else "-"
+        img_name = os.path.basename(image.path)
         size = f"{image.size_gb}G"
-        loop = volume.name if volume else "-"
+        loop = volume.loop_device if volume else "-"
         status = "mounted" if volume else "not mounted"
         permanent = "x" if image.permanent else "-"
         rows.append([directory, img_name, size, loop, status, permanent])
@@ -141,20 +143,16 @@ def list_mounts():
         print(fmt.format(*row))
 
 def remove(directory: str = None):
-    target = directory or SessionState.selected_directory
+    target = resolve_target(directory, "remove")
     if not target:
-        print("No directory specified. Run 'foldmount select <directory>' first, or pass a directory: 'foldmount remove <directory>'")
         return
 
-    target = os.path.abspath(target)
-    state = check_directory_state(target)
-
-    if state != "foldmount_mount":
+    state = get_directory_state(target)
+    if state != DirectoryState.FOLDMOUNT:
         print(f"No foldmount mount found at: {target}")
         return
 
-    image_name = os.path.basename(target) + ".img"
-    image_path = os.path.join(Paths.IMAGES_DIR, image_name)
+    image_path = image_path_for(target)
 
     # Stash files before unmounting — once the mount is gone the directory
     # reverts to its empty underlying state and the image is deleted.
@@ -179,8 +177,8 @@ def remove(directory: str = None):
     subprocess.run(["cp", "-a", temp_dir + "/.", target + "/"], check=True)
     subprocess.run(["rm", "-rf", temp_dir], check=True)
 
-    if SessionState.selected_directory == target:
-        SessionState.clear()
+    if Session.selected_directory == target:
+        Session.clear()
 
     print(f"Done — {target} restored with files intact")
 
@@ -206,7 +204,6 @@ def unmount_image(destination: str):
     # preventing failures if a file manager has the directory open.
     subprocess.run(["umount", "-l", destination], check=True)
 
-# Detaches the loop device backing the given image file.
 def detach_loop(image_path: str):
     result = subprocess.run(
         ["losetup", "--output", "NAME", "--noheadings", "--associated", image_path],
@@ -235,35 +232,31 @@ def remove_lost_found(image_path: str):
     subprocess.run(["debugfs", "-w", image_path, "-R", "rmdir lost+found"], check=True)
 
 def permanent(directory: str = None, remove: bool = False):
-    target = directory or SessionState.selected_directory
+    target = resolve_target(directory, "permanent")
     if not target:
-        print("No directory specified. Run 'foldmount select <directory>' first, or pass a directory: 'foldmount permanent <directory>'")
         return
 
-    target = os.path.abspath(target)
-    image_name = os.path.basename(target) + ".img"
-    image_path = os.path.join(Paths.IMAGES_DIR, image_name)
+    image_path = image_path_for(target)
 
     if remove:
-        if target not in SessionState.permanent_directories:
+        if target not in Session.permanent_directories:
             print(f"Not permanent: {target}")
             return
         with open("/etc/fstab", "r") as f:
             lines = f.readlines()
-        filtered = [l for l in lines if image_path not in l]
         with open("/etc/fstab", "w") as f:
-            f.writelines(filtered)
-        SessionState.permanent_directories.remove(target)
-        SessionState.save()
+            f.writelines(l for l in lines if image_path not in l)
+        Session.permanent_directories.remove(target)
+        Session.save()
         print(f"Done — {target} will no longer mount at boot")
         return
 
-    state = check_directory_state(target)
-    if state != "foldmount_mount":
+    state = get_directory_state(target)
+    if state != DirectoryState.FOLDMOUNT:
         print(f"No foldmount mount found at: {target}")
         return
 
-    if target in SessionState.permanent_directories:
+    if target in Session.permanent_directories:
         print(f"Already permanent: {target}")
         return
 
@@ -271,23 +264,13 @@ def permanent(directory: str = None, remove: bool = False):
         fstab = f.read()
     if image_path in fstab:
         print(f"Already in /etc/fstab: {image_path}")
-        SessionState.permanent_directories.append(target)
-        SessionState.save()
+        Session.permanent_directories.append(target)
+        Session.save()
         return
 
-    fstab_line = f"{image_path}\t{target}\text4\tloop\t0\t0\n"
     with open("/etc/fstab", "a") as f:
-        f.write(fstab_line)
+        f.write(f"{image_path}\t{target}\text4\tloop\t0\t0\n")
 
-    SessionState.permanent_directories.append(target)
-    SessionState.save()
+    Session.permanent_directories.append(target)
+    Session.save()
     print(f"Done — {target} will mount automatically at boot")
-
-REGISTRY = {
-    "select":    lambda args: select(args.directory),
-    "create":    lambda args: create(args.directory),
-    "remove":    lambda args: remove(args.directory),
-    "list":      lambda args: list_mounts(),
-    "fix":       lambda args: fix(),
-    "permanent": lambda args: permanent(args.directory, args.remove),
-}

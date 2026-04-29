@@ -1,14 +1,13 @@
-#!/usr/bin/env python3
 import os
-import startup, commands, cli
-from info_states import VersionInfo
+from . import context, cli
+from .models import VersionInfo
 
 def main():
     if os.geteuid() != 0:
         print("foldmount requires sudo — run with: sudo foldmount")
         return
 
-    startup.initialize()
+    context.initialize()
 
     parser = cli.build_parser()
     args = parser.parse_args()
@@ -17,9 +16,8 @@ def main():
         print(f"e2fsprogs {VersionInfo.version or 'unknown'} — version 1.45 or higher required")
         return
 
-    handler = commands.REGISTRY.get(args.command)
-    if handler:
-        handler(args)
+    if hasattr(args, "func"):
+        args.func(args)
     else:
         parser.print_help()
 

@@ -1,37 +1,45 @@
 import os
 import json
+from enum import Enum, auto
 from dataclasses import dataclass
-from paths import Paths
+from .paths import Paths
+
+class DirectoryState(Enum):
+    MISSING           = auto()
+    FOLDMOUNT         = auto()
+    EXTERNAL_CASEFOLD = auto()
+    MOUNTED           = auto()
+    NOT_EMPTY         = auto()
+    EMPTY             = auto()
 
 @dataclass
 class Volume:
-    name: str
+    loop_device: str
     directory: str
     mounted: bool
     casefold: bool
     source_image: str = ""
 
 @dataclass
-class MountImage:
-    image_path: str
+class DiskImage:
+    path: str
     size_gb: int
-    mounted_to: str
+    mount_point: str
     permanent: bool = False
 
 class VersionInfo:
     version: str = ""
     meets_minimum: bool = False
 
-class SessionState:
+class Session:
     selected_directory: str = ""
-    status_message: str = ""
     permanent_directories: list = []
 
     @staticmethod
     def save():
         data = {
-            "selected": SessionState.selected_directory,
-            "permanent": SessionState.permanent_directories,
+            "selected": Session.selected_directory,
+            "permanent": Session.permanent_directories,
         }
         with open(Paths.SESSION_FILE, "w") as f:
             json.dump(data, f)
@@ -44,17 +52,17 @@ class SessionState:
             content = f.read().strip()
         try:
             data = json.loads(content)
-            SessionState.selected_directory = data.get("selected", "")
-            SessionState.permanent_directories = data.get("permanent", [])
+            Session.selected_directory = data.get("selected", "")
+            Session.permanent_directories = data.get("permanent", [])
         except (json.JSONDecodeError, AttributeError):
             # backward compat: old format was a bare path
-            SessionState.selected_directory = content
-            SessionState.permanent_directories = []
+            Session.selected_directory = content
+            Session.permanent_directories = []
 
     @staticmethod
     def clear():
-        SessionState.selected_directory = ""
-        if SessionState.permanent_directories:
-            SessionState.save()
+        Session.selected_directory = ""
+        if Session.permanent_directories:
+            Session.save()
         elif os.path.exists(Paths.SESSION_FILE):
             os.remove(Paths.SESSION_FILE)

@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-sudo python3 "$(dirname "$0")/src/main.py" "$@"

@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "foldmount"
+version = "0.1.0"
+description = "Create case-insensitive directories on Linux via ext4 casefold loop mounts"
+requires-python = ">=3.10"
+dependencies = [
+    "packaging>=24.0",
+]
+
+[project.scripts]
+foldmount = "foldmount.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

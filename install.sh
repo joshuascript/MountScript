@@ -6,8 +6,7 @@ BIN_PATH="/usr/local/bin/foldmount"
 DATA_DIR="/var/lib/foldmount"
 
 if [[ "$EUID" -ne 0 ]]; then
-    echo "Run as root: sudo ./install.sh"
-    exit 1
+    exec sudo "$0" "$@"
 fi
 
 uninstall() {
@@ -43,13 +42,13 @@ fi
 
 echo "Installing foldmount..."
 
-# Copy source
+# Copy package
+rm -rf "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
-rm -rf "$INSTALL_DIR/src"
-cp -r src/ "$INSTALL_DIR/src"
+cp -r src/foldmount/. "$INSTALL_DIR/"
 
 # Install entry point
-cp "$INSTALL_DIR/src/bash/foldmount.bash" "$BIN_PATH"
+cp "$INSTALL_DIR/bash/foldmount.bash" "$BIN_PATH"
 chmod +x "$BIN_PATH"
 
 # Create data directory

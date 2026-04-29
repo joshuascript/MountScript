@@ -1,11 +1,10 @@
 import os
-import re
 import subprocess
 from packaging.version import Version
-from info_states import VersionInfo, SessionState
-from volume_cache import VolumeCache
-from image_cache import ImageCache
-from paths import Paths
+from .models import VersionInfo, Session
+from .mounts import VolumeCache
+from .images import ImageCache
+from .paths import Paths
 
 volume_cache: VolumeCache = None
 image_cache: ImageCache = None
@@ -14,7 +13,7 @@ def initialize():
     global volume_cache, image_cache
 
     os.makedirs(Paths.IMAGES_DIR, exist_ok=True)
-    SessionState.load()
+    Session.load()
     _check_version()
     _populate_volumes()
     _populate_images()
@@ -48,12 +47,12 @@ def _populate_images():
 
 def _cross_reference():
     for image in image_cache.images:
-        volume = volume_cache.get_by_source(image.image_path)
+        volume = volume_cache.get_by_source(image.path)
         if volume:
-            image.mounted_to = volume.directory
+            image.mount_point = volume.directory
         expected_dir = next(
-            (d for d in SessionState.permanent_directories
-             if os.path.join(Paths.IMAGES_DIR, os.path.basename(d) + ".img") == image.image_path),
+            (d for d in Session.permanent_directories
+             if os.path.join(Paths.IMAGES_DIR, os.path.basename(d) + ".img") == image.path),
             None
         )
         if expected_dir:
