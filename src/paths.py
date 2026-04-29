@@ -5,5 +5,5 @@ import os
 class Paths:
     PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
     BASH_DIR = os.path.join(PROJECT_ROOT, "bash")
-    IMAGES_DIR = "/var/lib/mountscript"
-    SESSION_FILE = "/var/lib/mountscript/session"
+    IMAGES_DIR = "/var/lib/foldmount"
+    SESSION_FILE = "/var/lib/foldmount/session"

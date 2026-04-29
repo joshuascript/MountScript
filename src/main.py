@@ -5,7 +5,7 @@ from info_states import VersionInfo
 
 def main():
     if os.geteuid() != 0:
-        print("mountscript requires sudo — run with: sudo mountscript")
+        print("foldmount requires sudo — run with: sudo foldmount")
         return
 
     startup.initialize()

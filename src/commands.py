@@ -11,7 +11,7 @@ def check_directory_state(directory: str) -> str:
     if not os.path.isdir(directory):
         return "does_not_exist"
     if startup.volume_cache.is_casefold_mount(directory):
-        return "mountscript_mount"
+        return "foldmount_mount"
     if startup.volume_cache.is_external_casefold(directory):
         return "external_casefold"
     if startup.volume_cache.is_mounted(directory):
@@ -27,8 +27,8 @@ def select(directory: str):
     if state == "does_not_exist":
         print(f"Directory does not exist: {directory}")
         return
-    if state == "mountscript_mount":
-        print(f"Already a MountScript casefold mount: {directory}")
+    if state == "foldmount_mount":
+        print(f"Already a foldmount casefold mount: {directory}")
         return
     if state == "external_casefold":
         print(f"External casefold mount detected: {directory}")
@@ -44,7 +44,7 @@ def select(directory: str):
 def create(directory: str = None):
     target = directory or SessionState.selected_directory
     if not target:
-        print("No directory specified. Run 'mountscript select <directory>' first, or pass a directory: 'mountscript create <directory>'")
+        print("No directory specified. Run 'foldmount select <directory>' first, or pass a directory: 'foldmount create <directory>'")
         return
 
     target = os.path.abspath(target)
@@ -53,8 +53,8 @@ def create(directory: str = None):
     if state == "does_not_exist":
         print(f"Directory does not exist: {target}")
         return
-    if state == "mountscript_mount":
-        print(f"Already a MountScript casefold mount: {target}")
+    if state == "foldmount_mount":
+        print(f"Already a foldmount casefold mount: {target}")
         return
     if state == "external_casefold":
         print(f"External casefold mount detected: {target}")
@@ -115,7 +115,7 @@ def create(directory: str = None):
 def list_mounts():
     images = startup.image_cache.images
     if not images:
-        print("No MountScript images found")
+        print("No foldmount images found")
         return
 
     headers = ["DIRECTORY", "IMAGE", "SIZE", "LOOP", "STATUS", "PERM"]
@@ -143,14 +143,14 @@ def list_mounts():
 def remove(directory: str = None):
     target = directory or SessionState.selected_directory
     if not target:
-        print("No directory specified. Run 'mountscript select <directory>' first, or pass a directory: 'mountscript remove <directory>'")
+        print("No directory specified. Run 'foldmount select <directory>' first, or pass a directory: 'foldmount remove <directory>'")
         return
 
     target = os.path.abspath(target)
     state = check_directory_state(target)
 
-    if state != "mountscript_mount":
-        print(f"No MountScript mount found at: {target}")
+    if state != "foldmount_mount":
+        print(f"No foldmount mount found at: {target}")
         return
 
     image_name = os.path.basename(target) + ".img"
@@ -237,7 +237,7 @@ def remove_lost_found(image_path: str):
 def permanent(directory: str = None, remove: bool = False):
     target = directory or SessionState.selected_directory
     if not target:
-        print("No directory specified. Run 'mountscript select <directory>' first, or pass a directory: 'mountscript permanent <directory>'")
+        print("No directory specified. Run 'foldmount select <directory>' first, or pass a directory: 'foldmount permanent <directory>'")
         return
 
     target = os.path.abspath(target)
@@ -259,8 +259,8 @@ def permanent(directory: str = None, remove: bool = False):
         return
 
     state = check_directory_state(target)
-    if state != "mountscript_mount":
-        print(f"No MountScript mount found at: {target}")
+    if state != "foldmount_mount":
+        print(f"No foldmount mount found at: {target}")
         return
 
     if target in SessionState.permanent_directories:

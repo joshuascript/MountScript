@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-INSTALL_DIR="/opt/mountscript"
-BIN_PATH="/usr/local/bin/mountscript"
-DATA_DIR="/var/lib/mountscript"
+INSTALL_DIR="/opt/foldmount"
+BIN_PATH="/usr/local/bin/foldmount"
+DATA_DIR="/var/lib/foldmount"
 
 if [[ "$EUID" -ne 0 ]]; then
     echo "Run as root: sudo ./install.sh"
@@ -11,7 +11,7 @@ if [[ "$EUID" -ne 0 ]]; then
 fi
 
 uninstall() {
-    echo "Uninstalling mountscript..."
+    echo "Uninstalling foldmount..."
     rm -f "$BIN_PATH"
     rm -rf "$INSTALL_DIR"
     echo "Removed $BIN_PATH and $INSTALL_DIR"
@@ -41,7 +41,7 @@ if [[ "$(printf '%s\n' "$REQUIRED" "$MKE2FS_VERSION" | sort -V | head -1)" != "$
     exit 1
 fi
 
-echo "Installing mountscript..."
+echo "Installing foldmount..."
 
 # Copy source
 mkdir -p "$INSTALL_DIR"
@@ -49,10 +49,10 @@ rm -rf "$INSTALL_DIR/src"
 cp -r src/ "$INSTALL_DIR/src"
 
 # Install entry point
-cp "$INSTALL_DIR/src/bash/mountscript.bash" "$BIN_PATH"
+cp "$INSTALL_DIR/src/bash/foldmount.bash" "$BIN_PATH"
 chmod +x "$BIN_PATH"
 
 # Create data directory
 mkdir -p "$DATA_DIR"
 
-echo "Done. Run: mountscript <command>"
+echo "Done. Run: foldmount <command>"

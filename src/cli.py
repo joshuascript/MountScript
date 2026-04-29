@@ -2,9 +2,9 @@ import argparse
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="mountscript",
+        prog="foldmount",
         description="Manage case-insensitive directories on Linux",
-        epilog="Run 'mountscript <command> --help' for help on a specific command.",
+        epilog="Run 'foldmount <command> --help' for help on a specific command.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     subparsers = parser.add_subparsers(
@@ -20,7 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     remove_parser = subparsers.add_parser("remove", help="Remove the casefold mount from the selected directory")
     remove_parser.add_argument("directory", nargs="?", help="Path to the directory (optional if already selected)")
-    subparsers.add_parser("list", help="List all active MountScript casefold mounts")
+    subparsers.add_parser("list", help="List all active foldmount casefold mounts")
     subparsers.add_parser("fix", help="Clear ghost volumes from Nautilus")
     permanent_parser = subparsers.add_parser("permanent", help="Make the casefold mount permanent (use --remove to undo)")
     permanent_parser.add_argument("directory", nargs="?", help="Path to the directory (optional if already selected)")

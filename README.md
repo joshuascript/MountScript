@@ -1,7 +1,7 @@
-# MountScript
+# foldmount
 ### Create case-insensitive directories on Linux
 
-MountScript converts any directory on your machine from case-sensitive to case-insensitive by backing it with an ext4 loop mount formatted with the `casefold` option.
+foldmount converts any directory on your machine from case-sensitive to case-insensitive by backing it with an ext4 loop mount formatted with the `casefold` option.
 
 ## Requirements
 
@@ -22,12 +22,12 @@ To uninstall:
 sudo ./install.sh --uninstall
 ```
 
-> Uninstalling removes `/opt/mountscript` and `/usr/local/bin/mountscript`. Your images and mounts in `/var/lib/mountscript/` are left intact.
+> Uninstalling removes `/opt/foldmount` and `/usr/local/bin/foldmount`. Your images and mounts in `/var/lib/foldmount/` are left intact.
 
 ## Usage
 
 ```bash
-mountscript <command> [directory]
+foldmount <command> [directory]
 ```
 
 ## Commands
@@ -37,7 +37,7 @@ mountscript <command> [directory]
 | `select <directory>` | Set the active directory for subsequent commands |
 | `create [directory]` | Create a casefold mount (uses selected if omitted) |
 | `remove [directory]` | Unmount and remove the image, preserving all files (uses selected if omitted) |
-| `list` | Show all MountScript images with mount status and fstab info |
+| `list` | Show all foldmount images with mount status and fstab info |
 | `permanent [directory]` | Add the mount to `/etc/fstab` so it persists across reboots (uses selected if omitted) |
 | `permanent [directory] --remove` | Remove the mount from `/etc/fstab` |
 | `fix` | Clear ghost volumes from Nautilus |
@@ -45,14 +45,14 @@ mountscript <command> [directory]
 ## Example
 
 ```bash
-mountscript select ~/Music
-mountscript create
-mountscript permanent
+foldmount select ~/Music
+foldmount create
+foldmount permanent
 ```
 
 Or in one step:
 
 ```bash
-mountscript create ~/Music
-mountscript permanent ~/Music
+foldmount create ~/Music
+foldmount permanent ~/Music
 ```
